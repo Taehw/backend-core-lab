@@ -19,6 +19,6 @@ public class SignupResponse {
         this.username = user.getUsername();
         this.email = user.getEmail();
         this.role = user.getRole(); //기본 Role: USER
-        this.message = "회원가입이 완료되었습니다";
+        this.message = "회원가입이 완료되었습니다"; 
     }
 }
