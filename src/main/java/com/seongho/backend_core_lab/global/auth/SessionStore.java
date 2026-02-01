@@ -7,10 +7,10 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Component
+@Component 
 public class SessionStore {
     
-    private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>();
+    private final Map<String, SessionInfo> sessions = new ConcurrentHashMap<>(); // ConcurrentHashMap: 멀티스레드 환경에서 안전한 HashMap
     
     /**
      * 새로운 세션 생성
