@@ -1,3 +1,5 @@
+//이코드는 세션 정보를 저장하는 클래스입니다.
+
 package com.seongho.backend_core_lab.global.auth;
 
 import com.seongho.backend_core_lab.domain.user.enums.Role;
