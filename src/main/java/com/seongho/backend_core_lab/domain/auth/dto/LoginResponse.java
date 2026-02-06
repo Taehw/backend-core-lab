@@ -7,18 +7,19 @@ import lombok.Getter;
 @Getter
 public class LoginResponse {
     
-    //final 키워드를 사용하여 불변성 보장
     private final Long userId;
     private final String username;
     private final String email;
     private final Role role;
-    private final String sessionId;
+    private final String accessToken;
+    private final String refreshToken;
     
-    public LoginResponse(User user, String sessionId) {
+    public LoginResponse(User user, String accessToken, String refreshToken) {
         this.userId = user.getId();
         this.username = user.getUsername();
         this.email = user.getEmail();
         this.role = user.getRole();
-        this.sessionId = sessionId;
-    } // password 필드는 제외하고 생성자 생성 -> 보안 유지
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+    }
 }
