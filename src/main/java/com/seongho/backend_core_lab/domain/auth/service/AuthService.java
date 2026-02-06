@@ -2,6 +2,8 @@ package com.seongho.backend_core_lab.domain.auth.service;
 
 import com.seongho.backend_core_lab.domain.auth.dto.LoginRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.LoginResponse;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshRequest;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshResponse;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupResponse;
 import com.seongho.backend_core_lab.domain.auth.entity.RefreshToken;
@@ -76,6 +78,7 @@ public class AuthService {
         LocalDateTime expiresAt = LocalDateTime.now()
                 .plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000);
         
+        //Refresh Token DB 저장: 이미 존재하면 업데이트, 없으면 새로 생성
         RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
                 .map(existing -> {
                     existing.updateToken(refreshTokenValue, expiresAt);
@@ -98,5 +101,25 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
         refreshTokenRepository.deleteByUser(user);
+    }
+    
+    public RefreshResponse refresh(RefreshRequest request) {
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 Refresh Token입니다")); //Refresh Token 조회
+        
+        if (refreshToken.isExpired()) {
+            throw new IllegalArgumentException("만료된 Refresh Token입니다");
+        } //Refresh Token 만료 시 401 반환
+        
+        User user = refreshToken.getUser(); //사용자 정보 추출, 
+        
+        
+        String newAccessToken = jwtTokenProvider.createAccessToken( //Access Token 생성
+                user.getId(),
+                user.getUsername(),
+                user.getRole()
+        );
+        
+        return new RefreshResponse(newAccessToken); //Refresh Token 갱신 응답 반환
     }
 }
