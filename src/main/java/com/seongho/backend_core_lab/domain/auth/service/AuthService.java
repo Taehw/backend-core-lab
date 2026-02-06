@@ -2,29 +2,37 @@ package com.seongho.backend_core_lab.domain.auth.service;
 
 import com.seongho.backend_core_lab.domain.auth.dto.LoginRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.LoginResponse;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshRequest;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshResponse;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupResponse;
+import com.seongho.backend_core_lab.domain.auth.entity.RefreshToken;
+import com.seongho.backend_core_lab.domain.auth.repository.RefreshTokenRepository;
 import com.seongho.backend_core_lab.domain.user.entity.User;
 import com.seongho.backend_core_lab.domain.user.enums.AuthProvider;
 import com.seongho.backend_core_lab.domain.user.enums.Role;
 import com.seongho.backend_core_lab.domain.user.repository.UserRepository;
-import com.seongho.backend_core_lab.global.auth.SessionInfo;
-import com.seongho.backend_core_lab.global.auth.SessionStore;
+import com.seongho.backend_core_lab.global.config.JwtProperties;
+import com.seongho.backend_core_lab.global.jwt.JwtTokenProvider;
 import com.seongho.backend_core_lab.global.util.PasswordEncoder;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
-//readOnly = true: 읽기 전용 트랜잭션, 쓰기 작업 시 예외 발생
+@Transactional(readOnly = true) // 읽기 전용 트랜잭션
 public class AuthService {
     
-    private final UserRepository userRepository;
+    private final UserRepository userRepository; // 사용자 저장/조회를 위한 리포지토리
     private final PasswordEncoder passwordEncoder;
-    private final SessionStore sessionStore;
+    private final JwtTokenProvider jwtTokenProvider; // JWT 토큰 생성/파싱을 위한 프로바이더
+    private final RefreshTokenRepository refreshTokenRepository; // Refresh Token 저장/조회를 위한 리포지토리
+    private final JwtProperties jwtProperties; // JWT 토큰 생성/파싱을 위한 프로퍼티
     
     @Transactional
     public SignupResponse signup(SignupRequest request) {
@@ -51,6 +59,7 @@ public class AuthService {
         return new SignupResponse(savedUser); // 회원가입 응답 반환
     }
     
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("아이디 또는 비밀번호가 일치하지 않습니다"));
@@ -59,18 +68,58 @@ public class AuthService {
             throw new IllegalArgumentException("아이디 또는 비밀번호가 일치하지 않습니다");
         }
         
-        SessionInfo sessionInfo = new SessionInfo(
+        String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getUsername(),
                 user.getRole()
         );
         
-        String sessionId = sessionStore.createSession(sessionInfo); // 세션 생성
+        String refreshTokenValue = UUID.randomUUID().toString();
+        LocalDateTime expiresAt = LocalDateTime.now()
+                .plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000);
         
-        return new LoginResponse(user, sessionId); // 로그인 응답 반환
+        //Refresh Token DB 저장: 이미 존재하면 업데이트, 없으면 새로 생성
+        RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
+                .map(existing -> {
+                    existing.updateToken(refreshTokenValue, expiresAt);
+                    return existing;
+                })
+                .orElseGet(() -> {
+                    RefreshToken newToken = RefreshToken.builder()
+                            .token(refreshTokenValue)
+                            .user(user)
+                            .expiresAt(expiresAt)
+                            .build();
+                    return refreshTokenRepository.save(newToken);
+                });
+        
+        return new LoginResponse(user, accessToken, refreshToken.getToken());
     }
     
-    public void logout(String sessionId) {
-        sessionStore.removeSession(sessionId);
+    @Transactional
+    public void logout(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        refreshTokenRepository.deleteByUser(user);
+    }
+    
+    public RefreshResponse refresh(RefreshRequest request) {
+        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 Refresh Token입니다")); //Refresh Token 조회
+        
+        if (refreshToken.isExpired()) {
+            throw new IllegalArgumentException("만료된 Refresh Token입니다");
+        } //Refresh Token 만료 시 401 반환
+        
+        User user = refreshToken.getUser(); //사용자 정보 추출, 
+        
+        
+        String newAccessToken = jwtTokenProvider.createAccessToken( //Access Token 생성
+                user.getId(),
+                user.getUsername(),
+                user.getRole()
+        );
+        
+        return new RefreshResponse(newAccessToken); //Refresh Token 갱신 응답 반환
     }
 }

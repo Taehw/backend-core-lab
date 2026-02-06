@@ -38,3 +38,6 @@ out/
 
 # PDF 파일
 *.pdf
+
+# 비밀 키 파일
+application-secret.properties

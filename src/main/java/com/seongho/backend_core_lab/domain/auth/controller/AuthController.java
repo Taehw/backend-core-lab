@@ -2,9 +2,12 @@ package com.seongho.backend_core_lab.domain.auth.controller;
 
 import com.seongho.backend_core_lab.domain.auth.dto.LoginRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.LoginResponse;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshRequest;
+import com.seongho.backend_core_lab.domain.auth.dto.RefreshResponse;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupRequest;
 import com.seongho.backend_core_lab.domain.auth.dto.SignupResponse;
 import com.seongho.backend_core_lab.domain.auth.service.AuthService;
+import com.seongho.backend_core_lab.global.jwt.JwtTokenProvider;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
     
     @PostMapping("/signup")
     public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
@@ -28,15 +32,23 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
-        return ResponseEntity.ok(response); //세션 아이디를 응답으로 반환해야댐댐
+        return ResponseEntity.ok(response);
     }
     
     @PostMapping("/logout")
-    //HTTP 상태코드 + 응답 본문을 함게 반환
-    public ResponseEntity<String> logout(@RequestHeader("X-Session-Id") String sessionId) {
-        
-        authService.logout(sessionId);
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.substring(7);
+        Long userId = jwtTokenProvider.getUserId(token);
+        authService.logout(userId);
         return ResponseEntity.ok("로그아웃되었습니다");
-        // = ResponseEntity.status(200).body(response)
+    }
+    
+    @PostMapping("/refresh") //Refresh Token 갱신 경로
+
+    //인증 없이 접근 가능 - PUBLIC_PATHS 에 추가되어 있음
+    //@Valid : RefreshRequest의 @NotBlank 검증
+    public ResponseEntity<RefreshResponse> refresh(@Valid @RequestBody RefreshRequest request) {
+        RefreshResponse response = authService.refresh(request);
+        return ResponseEntity.ok(response); //ok - 200 반환
     }
 }
