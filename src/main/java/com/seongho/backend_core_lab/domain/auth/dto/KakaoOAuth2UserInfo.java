@@ -49,8 +49,9 @@ public class KakaoOAuth2UserInfo implements OAuth2UserInfo {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
     public String getEmail() {
-        Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+        Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account"); 
         if (kakaoAccount == null) {
             return null;
         }
@@ -58,6 +59,8 @@ public class KakaoOAuth2UserInfo implements OAuth2UserInfo {
     }
     
     @Override
+    @SuppressWarnings("unchecked")
+    //캐스팅 경고 무시
     public String getName() {
         Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
         if (kakaoAccount == null) {
