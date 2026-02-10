@@ -30,7 +30,10 @@ public class AuthenticationFilter implements Filter {
     private static final List<String> PUBLIC_PATHS = Arrays.asList(
             "/auth/signup",
             "/auth/login",
-            "/auth/refresh" //Refresh Token 갱신 경로 - 인증없이 접근 가능능
+            "/auth/refresh",
+            "/oauth2/authorization/",
+            "/login/oauth2/code/",
+            "/h2-console"
     );
     
     @Override
