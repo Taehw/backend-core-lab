@@ -9,6 +9,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Spring Security 설정 클래스
@@ -47,6 +53,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // CORS 설정 활성화
+                // Spring Security에서 CORS를 명시적으로 허용해야 함
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                
                 // CSRF 비활성화
                 // REST API는 stateless하므로 CSRF 보호 불필요
                 // (우리는 JWT 사용, 세션 기반 인증 아님)
@@ -121,5 +131,50 @@ public class SecurityConfig {
                 );
         
         return http.build();
+    }
+    
+    /**
+     * CORS 설정
+     * 
+     * Spring Security 사용 시 반드시 SecurityFilterChain에서도 CORS를 설정해야 함
+     * WebConfig의 CORS 설정만으로는 부족함
+     * 
+     * @return CORS 설정 소스
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // 허용할 출처 (프론트엔드 URL)
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",      // Vite 커스텀 포트
+            "http://localhost:5173",      // Vite 기본 포트
+            "https://your-ngrok-url.ngrok-free.app"  // ngrok URL (필요시 수정)
+        ));
+        
+        // 허용할 HTTP 메서드
+        configuration.setAllowedMethods(Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+        
+        // 허용할 헤더
+        configuration.setAllowedHeaders(List.of("*"));
+        
+        // 인증 정보 포함 허용 (쿠키, Authorization 헤더 등)
+        configuration.setAllowCredentials(true);
+        
+        // preflight 요청 결과를 캐시할 시간 (초 단위)
+        configuration.setMaxAge(3600L);
+        
+        // 노출할 헤더 (프론트엔드에서 접근 가능한 헤더)
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type"
+        ));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
+        return source;
     }
 }

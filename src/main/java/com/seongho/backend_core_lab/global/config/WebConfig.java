@@ -3,6 +3,7 @@ package com.seongho.backend_core_lab.global.config;
 import com.seongho.backend_core_lab.global.interceptor.AdminAuthorizationInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -21,4 +22,19 @@ public class WebConfig implements WebMvcConfigurer {
     //인증 불필요 경로는 filter에서 처리됨
     //이건 interceptor에서 처리됨
     //이건 메시지 컨버터에서 처리됨
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins(
+                    "http://localhost:3000",      // Vite 커스텀 포트
+                    "http://localhost:5173",      // Vite 기본 포트
+                    "https://your-ngrok-url.ngrok-free.app"  // ngrok URL (필요시 수정)
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600)  // preflight 요청 캐시 시간 (초)
+                .exposedHeaders("Authorization", "Content-Type");  // 프론트엔드에서 접근 가능한 헤더
+    }
 }
