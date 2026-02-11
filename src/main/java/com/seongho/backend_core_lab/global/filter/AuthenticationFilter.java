@@ -33,7 +33,8 @@ public class AuthenticationFilter implements Filter {
             "/auth/refresh",
             "/oauth2/authorization/",
             "/login/oauth2/code/",
-            "/h2-console"
+            "/h2-console",
+            "/notifications/subscribe"  // SSE는 쿼리 파라미터로 토큰 검증하므로 필터 우회
     );
     
     @Override
