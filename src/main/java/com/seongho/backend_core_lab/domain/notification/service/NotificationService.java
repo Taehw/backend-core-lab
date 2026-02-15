@@ -17,12 +17,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
+@Slf4j //로깅 기능 제공 
+@Service 
+@RequiredArgsConstructor 
+// 생성자 주입 방식으로 의존성 주입
 public class NotificationService {
     
     private final NotificationRepository notificationRepository;
+    // 사용자 정보를 조회하기 위한 의존성 주입
     private final UserRepository userRepository;
     
     // 사용자별 SSE Emitter 저장
